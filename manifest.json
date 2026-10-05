@@ -1,0 +1,108 @@
+{
+  "name": "dsh-mook-skill",
+  "version": "0.1.0",
+  "description": "Mook 插件（DeepSeek Harness 技能 + MCP 服务器）：让 Agent 通过访问密钥管理 Mook 上托管的服务器与常用命令",
+  "target": {
+    "agent": "deepseek-harness",
+    "note": "为 DeepSeek Harness 验证与支持；实现基于通用 Agent 插件规范（标准 SKILL.md + 标准 MCP），其他客户端亦可复用"
+  },
+  "requires": {
+    "mook": ">=0.4.0",
+    "node": ">=18"
+  },
+  "install": {
+    "skill": {
+      "from": "skills/mook",
+      "to": "${DSH_HOME:-$HOME/.dsh}/skills/mook",
+      "note": "目录束形态：必须是 <技能根>/mook/SKILL.md，DSH 不会发现嵌套更深的 SKILL.md"
+    },
+    "mcp": {
+      "from": "mcp/mook-mcp.js",
+      "command": "node",
+      "note": "在会话级 MCP 配置中声明 {name, command(绝对路径), args, env}，走 stdio 传输"
+    }
+  },
+  "env": [
+    {
+      "key": "MOOK_URL",
+      "required": true,
+      "description": "Mook 实例地址，不要带尾斜杠，例如 http://192.168.31.199:5866"
+    },
+    {
+      "key": "MOOK_API_KEY",
+      "required": true,
+      "description": "访问密钥，mk_ 开头共 51 字符，在 Mook 网页端 设置 → 访问密钥 创建"
+    }
+  ],
+  "entries": [
+    {
+      "path": "SKILL.md",
+      "title": "Mook",
+      "description": "技能入口：权限速查、接口清单、四个必须知道的陷阱、安全红线"
+    },
+    {
+      "path": "reference/setup.md",
+      "title": "安装与配置",
+      "description": "从零安装：建密钥、装依赖、各客户端 MCP 配置、技能安装、验证"
+    },
+    {
+      "path": "reference/api.md",
+      "title": "Agent API 参考",
+      "description": "/api/agent/* 全部接口的请求与响应字段、状态码总表、刻意不开放的接口"
+    },
+    {
+      "path": "reference/troubleshooting.md",
+      "title": "排错手册",
+      "description": "401/403/502、超时、全量替换陷阱、MCP 客户端排错、安全提醒"
+    }
+  ],
+  "scopes": [
+    {
+      "key": "servers:read",
+      "label": "查看服务器",
+      "dangerous": false
+    },
+    {
+      "key": "servers:write",
+      "label": "管理服务器",
+      "dangerous": false
+    },
+    {
+      "key": "servers:exec",
+      "label": "远程执行",
+      "dangerous": true
+    },
+    {
+      "key": "commands:read",
+      "label": "查看常用命令",
+      "dangerous": false
+    },
+    {
+      "key": "commands:write",
+      "label": "管理常用命令",
+      "dangerous": false
+    }
+  ],
+  "tools": [
+    "list_servers",
+    "get_server",
+    "add_server",
+    "update_server",
+    "remove_server",
+    "exec_command",
+    "list_files",
+    "read_file",
+    "write_file",
+    "list_commands",
+    "save_command",
+    "update_command",
+    "delete_command",
+    "mark_command_used"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/NikoYomi/dsh-mook-skill",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NikoYomi/dsh-mook-skill.git"
+  }
+}

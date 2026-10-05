@@ -1,0 +1,9 @@
+node_modules/
+npm-debug.log*
+*.log
+
+# 密钥等隐私文件绝不入库
+.env
+.env.*
+*.key
+mook-key*.txt
