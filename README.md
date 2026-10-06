@@ -147,6 +147,23 @@ DSH 会在这些时机自动加载 `mook` 技能：
 - Mook 后端只记录 `key id / 方法 / 路径 / 状态码`，**不记命令内容与文件路径**。
 - 密钥泄露立刻去 **设置 → 访问密钥 → 撤销**。
 
+## 卸载前请先清除数据
+
+**DSH 卸载插件时只删程序文件，插件自己写的数据不会跟着走。** 想卸载得干净，先在设置页 **设置 → Mook → 「清除全部数据」** 点一下（两段式确认）。
+
+本插件只往两处写数据，都很小：
+
+| 位置 | 内容 |
+| --- | --- |
+| `$DSH_HOME/storages/mook/config.json` | Mook 地址，约 46 字节 |
+| dsh 凭据库的 `MOOK_API_KEY` | API 密钥，与其它凭据加密共存于同一个 `.credentials.yaml` |
+
+点「清除全部数据」会同时删掉这两处；**不动**凭据库里的其它条目。「清除全部数据」是幂等的，重复点不会报错。
+
+技能目录（`$DSH_HOME/skills/mook/`）由 `install.sh` 复制，卸载插件不会删它，需要自己 `rm -rf`。
+
+> 为什么不自动清？cordis 在插件 dispose 时广播的 `internal/plugin` 事件，**「禁用插件」和「卸载插件」走的是同一条路径**，插件无法区分。自动删会在用户只是临时禁用一下时把密钥删掉，所以改成显式按钮。
+
 ## 目录结构
 
 ```text
@@ -156,6 +173,9 @@ dsh-mook-skill/
 ├── manifest.json                   # 插件元数据
 ├── package.json                    # DSH 插件包定义（宿主半场 + Web 客户端）
 ├── cordis.patch.yml                # 装机时把插件挂进 profile
+├── locale/
+│   ├── en.json                     # 插件显示名与简介（英文）
+│   └── zh.json                     # 插件显示名与简介（中文）
 ├── lib/
 │   ├── index.js                    # 宿主半场：设置页的后端路由（/mook/api/*）
 │   └── client.js                   # 客户端半场：设置 → Mook 面板
@@ -185,6 +205,7 @@ dsh-mook-skill/
 | 401 `API 密钥无效` | 密钥抄错，或用了别的 Mook 实例的密钥 |
 | 403 `密钥缺少权限：X` | 带着 X 重建密钥 |
 | 改连不上的服务器要等约 10 秒 | 正常——GET 会触发实时状态采集，SSH 超时 10 秒 |
+| 设置里的插件名显示成 `@yoursc/dsh-mook-skill` | 重启 `dsh web`；名字来自 `locale/*.json` 的 `meta.title`，且 `package.json` 的 `exports` 必须放行 `./locale/*` |
 
 完整排错见 [`skills/mook/reference/troubleshooting.md`](skills/mook/reference/troubleshooting.md)。
 

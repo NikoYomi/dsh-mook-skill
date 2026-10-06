@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "NikoYomi/dsh-mook-skill",
+    "description": "Connect Mook to DeepSeek Harness: set the address and access key in the Web settings page (the key is stored in the host credential store and never echoed back), generate the MCP configuration snippet in one click, and let the agent manage the servers and saved commands hosted on Mook."
+  }
+}

@@ -22,7 +22,11 @@
     },
     "plugin": {
       "command": "dsh plugin --profile web add <本目录绝对路径>",
-      "note": "装宿主半场后，地址与密钥可在「设置 → Mook」里填（密钥存 dsh 凭据库，不回显），并可生成 MCP 配置片段"
+      "note": "装宿主半场后，地址与密钥可在「设置 → Mook」里填（密钥存 dsh 凭据库，不回显），并可生成 MCP 配置片段",
+      "displayName": {
+        "source": "locale/en.json 与 locale/zh.json 的 meta.title",
+        "note": "DSH 从 <包>/locale/<lang>.json 读插件显示名，回退到 package.json 的 name；dshhub.displayName 是死字段，不生效。package.json 的 exports 必须放行 \"./locale/*\"，否则文件存在也解析不到。"
+      }
     }
   },
   "env": [
@@ -41,7 +45,7 @@
     {
       "path": "SKILL.md",
       "title": "Mook",
-      "description": "技能入口：权限速查、接口清单、四个必须知道的陷阱、安全红线"
+      "description": "技能入口：权限速查、接口清单、五个必须知道的陷阱、安全红线"
     },
     {
       "path": "reference/setup.md",
@@ -107,5 +111,13 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/NikoYomi/dsh-mook-skill.git"
+  },
+  "uninstall": {
+    "cleanup": "设置 → Mook → 「清除全部数据」（幂等）",
+    "data": [
+      "${DSH_HOME}/storages/mook/config.json（Mook 地址，约 46 字节）",
+      "dsh 凭据库的 MOOK_API_KEY（与其它凭据加密共存于 .credentials.yaml）"
+    ],
+    "note": "DSH 卸载插件只删程序文件，不清插件数据；插件也无法自动清（禁用与卸载走同一条 dispose 路径，无法区分）。技能目录 ${DSH_HOME}/skills/mook/ 需手动 rm -rf。"
   }
 }

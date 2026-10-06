@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "NikoYomi/dsh-mook-skill",
+    "description": "把 Mook 接入 DeepSeek Harness：在设置页填地址与访问密钥（密钥存宿主凭据库，不回显），一键生成 MCP 配置片段，Agent 可管理 Mook 上托管的服务器与常用命令。"
+  }
+}
