@@ -49,9 +49,27 @@ curl -s -o /dev/null -w '%{http_code}\n' \
 
 ---
 
-## 三、连接类（502 / 连不上）
+## 三、连接类（502 / 404 / 连不上）
 
-### Mook 自己连不上（`MOOK_URL` 打不通）
+### 报 `Mook 没有返回 JSON（HTTP 404）：地址可能填错了，应为服务根地址`
+
+**飞牛套件版几乎都是这个原因：地址少了 `/app/mook` 前缀。**
+
+套件版设了 `MOOK_BASE_PATH=/app/mook`（统一网关需要），Mook 因此只认带前缀的路径，
+直连端口上填服务根地址会得到 `404 page not found`（纯文本，不是 JSON —— 所以插件
+报「没有返回 JSON」）。
+
+修法二选一：
+
+| Mook 版本 | 填法 |
+| --- | --- |
+| v0.4.5 及以后 | 两种都行；建议仍带前缀，保持各版本通用 |
+| v0.4.5 以前 | **必须**带前缀：`http://<飞牛IP>:<端口>/app/mook` |
+
+快速判断：`curl -s http://<飞牛IP>:<端口>/api/setup/status` 若返回
+`404 page not found`，换带前缀再试一次；返回 `{"setup_required":false}` 即前缀正确。
+
+### 其他连不上（`MOOK_URL` 打不通）
 
 ```bash
 curl -v "$MOOK_URL/api/setup/status"
@@ -60,6 +78,7 @@ curl -v "$MOOK_URL/api/setup/status"
 - 检查地址有没有多写 `/`（`http://host:5866/` 尾斜杠在某些客户端会拼出 `//api/...`）
 - Mook 容器在跑吗：`docker ps | grep mook`
 - 端口通吗：`nc -zv <host> <port>`
+- 飞牛套件版的端口是**安装向导里选**的，不是固定的 5866 —— 去「应用设置」里确认
 
 ### Mook 连不上目标服务器（502）
 

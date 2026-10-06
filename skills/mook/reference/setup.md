@@ -75,7 +75,16 @@ export MOOK_API_KEY=mk_你的密钥
 | --- | --- |
 | Docker 直连 | `http://192.168.31.199:5866` |
 | 走网关 / 反向代理 | `https://mook.example.com` |
-| 飞牛应用中心 | `http://<飞牛IP>:<网关端口>/app/mook` |
+| 飞牛套件版（应用中心安装） | `http://<飞牛IP>:<端口>/app/mook` ← **注意带前缀** |
+
+> ⚠️ **飞牛套件版要带 `/app/mook` 前缀。**
+> 套件版设了 `MOOK_BASE_PATH=/app/mook`（统一网关需要它），Mook 因此只认带前缀的
+> 路径；填 `http://<飞牛IP>:<端口>` 会得到 `404 page not found`。
+>
+> 例外：**Mook v0.4.5 及以后**在直连端口上同时接受带前缀与不带前缀两种写法。
+> 带前缀的写法在**所有版本**上都有效，所以建议一律带上。
+>
+> 套件版的端口在**安装向导里选**（默认 5866），也可在「应用设置 → 配置」中修改。
 
 自测一下：
 
@@ -83,6 +92,9 @@ export MOOK_API_KEY=mk_你的密钥
 curl -s "$MOOK_URL/api/setup/status"
 # 期望：{"setup_required":false}
 ```
+
+返回 `404 page not found` = 地址少了前缀（套件版）或路径写错；
+返回 HTML 而不是 JSON = 地址指向了网页端而非 API 根路径。
 
 ---
 
