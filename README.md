@@ -3,10 +3,6 @@
 让 **DeepSeek Harness** 的 Agent 接管你的 [Mook](https://github.com/NikoYomi/mook) ——
 管理托管服务器、在服务器上执行命令、读写文件、编辑常用命令库。
 
-> 本插件基于**通用 Agent 插件规范**构建：技能用标准 `SKILL.md` 目录束，工具用标准
-> Model Context Protocol。因此同一个包在 Claude Desktop、Cursor、Cline 上也能直接用，
-> 只是我们**只为 DeepSeek Harness 做验证与支持**。
-
 ## 前置：Mook ≥ v0.4.0
 
 访问密钥与 `/api/agent/*` 接口是 v0.4.0 引入的。低于这个版本没有 Agent 接口。

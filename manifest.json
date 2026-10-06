@@ -3,8 +3,7 @@
   "version": "0.1.0",
   "description": "Mook 插件（DeepSeek Harness 技能 + MCP 服务器）：让 Agent 通过访问密钥管理 Mook 上托管的服务器与常用命令",
   "target": {
-    "agent": "deepseek-harness",
-    "note": "为 DeepSeek Harness 验证与支持；实现基于通用 Agent 插件规范（标准 SKILL.md + 标准 MCP），其他客户端亦可复用"
+    "agent": "deepseek-harness"
   },
   "requires": {
     "mook": ">=0.4.0",

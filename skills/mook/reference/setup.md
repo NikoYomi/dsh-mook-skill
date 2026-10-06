@@ -9,9 +9,6 @@
 
 技能是主路径（DSH 原生支持 `SKILL.md`）；MCP 是增强，让工具调用更结构化。
 
-> 两者都建立在**通用 Agent 插件规范**上（标准 `SKILL.md` 目录束 + 标准 MCP），
-> 所以 Claude Desktop / Cursor / Cline 也能用同一份包 —— 但我们只保证 DSH 这条路径。
-
 **先决条件**：Node.js ≥ 18（`node --version` 检查；仅 MCP 方式需要）。
 
 ---
@@ -91,51 +88,7 @@ curl -s "$MOOK_URL/api/setup/status"
 
 ## 第 3 步：配置 MCP 服务器（可选，推荐）
 
-### 通用配置片段
-
-所有客户端要的都是同一份东西——一个 stdio MCP server 的启动声明：
-
-```json
-{
-  "mcpServers": {
-    "mook": {
-      "command": "node",
-      "args": ["/绝对路径/dsh-mook-skill/mcp/mook-mcp.js"],
-      "env": {
-        "MOOK_URL": "http://192.168.31.199:5866",
-        "MOOK_API_KEY": "mk_你的密钥"
-      }
-    }
-  }
-}
-```
-
-两个要点：
-
-- `command` 必须是**绝对路径**。建议用 `which node` 查出来填进去，
-  某些 GUI 客户端拿不到 shell 的 PATH。
-- `args` 里的脚本路径也必须是绝对路径。
-
-### 各客户端怎么填
-
-**Claude Desktop** —— 编辑配置文件（macOS：`~/Library/Application Support/Claude/claude_desktop_config.json`；
-Windows：`%APPDATA%\Claude\claude_desktop_config.json`），把上面的 `mcpServers` 合并进去，重启客户端。
-
-**Cursor** —— `~/.cursor/mcp.json`（或项目内 `.cursor/mcp.json`），格式同上。
-
-**Cline / Roo Code（VS Code）** —— 设置里找到 MCP Servers，用「Edit MCP Settings」，
-格式同上。
-
-**Claude Code** ——
-
-```bash
-claude mcp add mook --env MOOK_URL=http://192.168.31.199:5866 \
-                      --env MOOK_API_KEY=mk_你的密钥 \
-                      -- node /绝对路径/dsh-mook-skill/mcp/mook-mcp.js
-```
-
-**DeepSeek Harness / 其他 ACP 客户端** —— 在会话级 MCP 配置里声明，字段是
-`name` / `command`（绝对路径）/ `args` / `env`：
+在 DSH 的**会话级 MCP 配置**里声明一个 stdio server：
 
 ```json
 {
@@ -149,8 +102,13 @@ claude mcp add mook --env MOOK_URL=http://192.168.31.199:5866 \
 }
 ```
 
-> 客户端要求 `name` 只能含字母、数字、`_`、`-`（最长 32 字符）。
-> 如果客户端还支持 HTTP 型 MCP，本项目目前**只提供 stdio 形态**，请用上面的方式。
+两个要点：
+
+- `command` 必须是**绝对路径**。用 `which node` 查出来填进去，
+  GUI 客户端拿不到 shell 的 PATH。
+- `args` 里的脚本路径也必须是绝对路径。
+- `name` 只能含字母、数字、`_`、`-`（最长 32 字符）。
+  本项目**只提供 stdio 形态**，不支持 HTTP 型 MCP。
 
 ### 依赖装在哪？
 

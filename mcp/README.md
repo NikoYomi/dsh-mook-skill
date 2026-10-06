@@ -1,7 +1,6 @@
 # Mook MCP Server
 
-把 Mook 的 Agent 接口暴露成 14 个 MCP 工具，任何支持 Model Context Protocol 的
-客户端都能直接用。
+把 Mook 的 Agent 接口暴露成 14 个 MCP 工具，供 DeepSeek Harness 的 Agent 调用。
 
 ## 配置
 
@@ -14,29 +13,20 @@
 
 密钥在 Mook 网页端 **设置 → 访问密钥** 创建，明文只显示一次。
 
-## 客户端配置片段
+## 在 DSH 中声明
+
+在**会话级 MCP 配置**里加上：
 
 ```json
 {
-  "mcpServers": {
-    "mook": {
-      "command": "/usr/bin/node",
-      "args": ["/绝对路径/dsh-mook-skill/mcp/mook-mcp.js"],
-      "env": {
-        "MOOK_URL": "http://192.168.31.199:5866",
-        "MOOK_API_KEY": "mk_你的密钥"
-      }
-    }
+  "name": "mook",
+  "command": "/usr/bin/node",
+  "args": ["/绝对路径/dsh-mook-skill/mcp/mook-mcp.js"],
+  "env": {
+    "MOOK_URL": "http://192.168.31.199:5866",
+    "MOOK_API_KEY": "mk_你的密钥"
   }
 }
-```
-
-Claude Code 用命令行的方式：
-
-```bash
-claude mcp add mook --env MOOK_URL=http://192.168.31.199:5866 \
-                      --env MOOK_API_KEY=mk_你的密钥 \
-                      -- node /绝对路径/dsh-mook-skill/mcp/mook-mcp.js
 ```
 
 ## 装依赖
