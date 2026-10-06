@@ -18,7 +18,11 @@
     "mcp": {
       "from": "mcp/mook-mcp.js",
       "command": "node",
-      "note": "在会话级 MCP 配置中声明 {name, command(绝对路径), args, env}，走 stdio 传输"
+      "note": "在 profile 的 cordis.patch.yml 中声明为 Cordis 插件实例：config 需含 transport: stdio、serverName: mook、绝对路径的 command/args，以及 env.MOOK_URL / env.MOOK_API_KEY"
+    },
+    "plugin": {
+      "command": "dsh plugin --profile web add <本目录绝对路径>",
+      "note": "装宿主半场后，地址与密钥可在「设置 → Mook」里填（密钥存 dsh 凭据库，不回显），并可生成 MCP 配置片段"
     }
   },
   "env": [

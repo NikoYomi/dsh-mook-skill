@@ -15,19 +15,33 @@
 
 ## 在 DSH 中声明
 
-在**会话级 MCP 配置**里加上：
+DSH 的 MCP 是 **Cordis 插件配置**（不是会话级 ACP 声明）。在 profile 的
+`cordis.patch.yml` 里加一个 `dsh-mcp-client` 实例：
 
-```json
-{
-  "name": "mook",
-  "command": "/usr/bin/node",
-  "args": ["/绝对路径/dsh-mook-skill/mcp/mook-mcp.js"],
-  "env": {
-    "MOOK_URL": "http://192.168.31.199:5866",
-    "MOOK_API_KEY": "mk_你的密钥"
-  }
-}
+```yaml
+- id: mook
+  name: "@deepseek-ai/dsh-mcp-client"
+  config:
+    transport: stdio
+    serverName: mook
+    command: /usr/bin/node
+    args:
+      - /绝对路径/dsh-mook-skill/mcp/mook-mcp.js
+    env:
+      MOOK_URL: "http://192.168.31.199:5866"
+      MOOK_API_KEY: "mk_你的密钥"
 ```
+
+文件位于 `${DSH_HOME:-~/.dsh}/profiles/<profile>/cordis.patch.yml`，
+改完重启 `dsh web`。工具会以 `mcp__mook__<工具名>` 注册给模型。
+
+注意事项：
+
+- `transport: stdio` **必填**，漏掉或写成 ACP 风格的 `{name, command}` 都会启动失败。
+- 字段名是 `serverName`（不是 `name`）；同一 profile 内不可重复。
+- `command` 写 node 的**绝对路径**：`dsh-mcp-client` 会擦洗父进程环境，
+  子进程拿不到 shell 的 PATH。
+- `env` 必须写全两个变量 —— 擦洗后不会继承外部的 `MOOK_API_KEY`。
 
 ## 装依赖
 
@@ -65,5 +79,5 @@ printf '%s\n' \
 ## 注意
 
 - 客户端对 server 名有格式限制（字母数字 `_` `-`，≤32 字符）。
-- 某些 GUI 客户端不继承 shell 的 PATH，`command` 请写 `node` 的绝对路径。
-- 本包只提供 stdio 形态；如果你的客户端只支持 HTTP 型 MCP，请提 issue。
+- DSH 擦洗父进程环境，`command` 请写 `node` 的绝对路径、`env` 写全。
+- 本 server 只提供 stdio 形态。

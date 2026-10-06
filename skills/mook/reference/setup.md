@@ -5,7 +5,7 @@
 | 方式 | 作用 | 装法 |
 | --- | --- | --- |
 | **技能（Skill）** | 教 Agent 怎么用：权限、接口、陷阱、安全红线 | 复制 `skills/mook/` 到 DSH 技能根 |
-| **MCP 服务器** | 给 Agent 现成的 14 个工具，不用手拼 curl | 在会话级 MCP 配置里声明 |
+| **MCP 服务器** | 给 Agent 现成的 14 个工具，不用手拼 curl | 装宿主半场后由「设置 → Mook」生成配置片段 |
 
 技能是主路径（DSH 原生支持 `SKILL.md`）；MCP 是增强，让工具调用更结构化。
 
@@ -88,42 +88,53 @@ curl -s "$MOOK_URL/api/setup/status"
 
 ## 第 3 步：配置 MCP 服务器（可选，推荐）
 
-在 DSH 的**会话级 MCP 配置**里声明一个 stdio server：
+Mook 插件提供标准 stdio MCP server。在 DSH 里它是**一个 Cordis 插件实例**，
+写在 profile 的 `cordis.patch.yml` 里：
 
-```json
-{
-  "name": "mook",
-  "command": "/usr/bin/node",
-  "args": ["/绝对路径/dsh-mook-skill/mcp/mook-mcp.js"],
-  "env": {
-    "MOOK_URL": "http://192.168.31.199:5866",
-    "MOOK_API_KEY": "mk_你的密钥"
-  }
-}
+```yaml
+- id: mook
+  name: "@deepseek-ai/dsh-mcp-client"
+  config:
+    transport: stdio
+    serverName: mook
+    command: /usr/bin/node
+    args:
+      - /绝对路径/dsh-mook-skill/mcp/mook-mcp.js
+    env:
+      MOOK_URL: "http://192.168.31.199:5866"
+      MOOK_API_KEY: "mk_你的密钥"
 ```
 
-两个要点：
+文件位置：`${DSH_HOME:-~/.dsh}/profiles/<profile>/cordis.patch.yml`
+（Web profile 就是 `profiles/web/cordis.patch.yml`）。改完**重启 `dsh web`** 生效。
 
+四个要点：
+
+- **`transport: stdio` 是必填的**。DSH 的 MCP 客户端靠它分发传输层；
+  写成 ACP 风格的 `{name, command}` 或漏掉 `transport` 都会启动失败。
+- `serverName` 只能含字母、数字、`_`、`-`（最长 32 字符），工具会以
+  `mcp__mook__<工具名>` 注册给模型。**是 `serverName` 不是 `name`** ——
+  同一条目外层那个 `id: mook` 才是实例标识。
 - `command` 必须是**绝对路径**。用 `which node` 查出来填进去，
-  GUI 客户端拿不到 shell 的 PATH。
-- `args` 里的脚本路径也必须是绝对路径。
-- `name` 只能含字母、数字、`_`、`-`（最长 32 字符）。
-  本项目**只提供 stdio 形态**，不支持 HTTP 型 MCP。
+  DSH 擦洗过父进程环境，拿不到 shell 的 PATH。
+- `env` 里两个变量**必须显式写全**。`dsh-mcp-client` 会擦洗父进程环境
+  （credential 形状的变量会被剔除），所以 `MOOK_API_KEY` 不能靠外部环境变量兜底。
+
+> 如果你已经装好本插件的**宿主半场**（见第 0 步，`dsh plugin add` 方式），
+> 更省事的做法是打开 **设置 → Mook**，填好地址与密钥后点「生成配置片段」，
+> 插件会按你填的地址和密钥生成上面这段 YAML，点「复制」再自己粘进
+> `cordis.patch.yml` —— 它不会替你写文件，落笔仍是你自己。
 
 ### 依赖装在哪？
 
-`mook-mcp.js` 需要 `@modelcontextprotocol/sdk` 和 `zod`。两种做法：
-
-**做法一（推荐）**：在插件目录装一次
+`mook-mcp.js` 需要 `@modelcontextprotocol/sdk` 和 `zod`。在插件目录装一次：
 
 ```bash
 cd /绝对路径/dsh-mook-skill/mcp
 npm install --registry=https://registry.npmmirror.com
 ```
 
-装完 `node_modules/` 就在同目录，客户端启动时能解析到。
-
-**做法二**：如果客户端支持自带依赖的包，也可以 `npm i -g mook-mcp`（若你已发布）。
+装完 `node_modules/` 就在同目录，`mook-mcp.js` 启动时能解析到。
 
 ---
 

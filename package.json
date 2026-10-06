@@ -1,0 +1,67 @@
+{
+  "name": "@yoursc/dsh-mook-skill",
+  "version": "0.1.0",
+  "description": "Mook 插件（DeepSeek Harness）：把 Mook 托管的服务器与常用命令交给 Agent 管理，含 Web 设置页与 MCP server。",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "mcp",
+    "skills",
+    "cordis.patch.yml",
+    "install.sh",
+    "README.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "engines": {
+      "dsh": ">=0.1.5-rc.1 || >=0.1.6-0 || >=0.1.7-0"
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  },
+  "dshhub": {
+    "schemaVersion": 1,
+    "displayName": "Mook",
+    "summary": "把 Mook 接入 DeepSeek Harness：Web 设置页填地址与访问密钥（密钥存宿主凭据库，不回显），一键生成 MCP 配置片段，Agent 可管理 Mook 上托管的服务器与常用命令。",
+    "categories": [
+      "运维",
+      "Web UI"
+    ],
+    "surfaces": [
+      "host",
+      "web"
+    ],
+    "capabilities": {
+      "provides": [
+        "service:mook"
+      ]
+    },
+    "compatibility": {
+      "dsh": ">=0.1.5-rc.1 || >=0.1.6-0 || >=0.1.7-0",
+      "node": ">=20"
+    }
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "mcp",
+    "mook",
+    "ssh",
+    "vps"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NikoYomi/dsh-mook-skill.git"
+  }
+}

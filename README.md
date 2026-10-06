@@ -64,21 +64,50 @@ cd mcp
 npm install --registry=https://registry.npmmirror.com
 ```
 
-然后在 DSH 的会话级 MCP 配置里声明：
+然后在 DSH 里把它声明成**一个 Cordis 插件实例**，写进 profile 的
+`cordis.patch.yml`（Web profile 就是 `${DSH_HOME:-~/.dsh}/profiles/web/cordis.patch.yml`）：
 
-```json
-{
-  "name": "mook",
-  "command": "/usr/bin/node",
-  "args": ["/绝对路径/dsh-mook-skill/mcp/mook-mcp.js"],
-  "env": {
-    "MOOK_URL": "http://192.168.31.199:5866",
-    "MOOK_API_KEY": "mk_你的密钥"
-  }
-}
+```yaml
+- id: mook
+  name: "@deepseek-ai/dsh-mcp-client"
+  config:
+    transport: stdio
+    serverName: mook
+    command: /usr/bin/node
+    args:
+      - /绝对路径/dsh-mook-skill/mcp/mook-mcp.js
+    env:
+      MOOK_URL: "http://192.168.31.199:5866"
+      MOOK_API_KEY: "mk_你的密钥"
 ```
 
-两个路径**必须是绝对路径**（`which node` 查出来填）。
+四个要点：
+
+- **`transport: stdio` 必填**。写成 ACP 风格的 `{name, command}` 或漏掉它都会启动失败。
+- **是 `serverName` 不是 `name`**（外层的 `id: mook` 才是实例标识）。
+- `command` 与 `args` 里的路径**都必须是绝对路径**（`which node` 查出来填）——DSH 擦洗过父进程环境，拿不到 shell 的 PATH。
+- `env` 两个变量**必须显式写全**：`dsh-mcp-client` 会剔除父环境里的凭据形状变量，`MOOK_API_KEY` 不能靠外部环境变量兜底。
+
+改完**重启 `dsh web`** 生效，工具会以 `mcp__mook__<工具名>` 注册给模型。
+
+## 第 4 步 · 装设置页（可选，最省事）
+
+前面三步是手工路线。装**宿主半场**后，地址与密钥都能在图形界面里填：
+
+```bash
+dsh plugin --profile web add /绝对路径/dsh-mook-skill
+```
+
+重启 `dsh web`，打开 **设置 → Mook**，有三张卡：
+
+- **连接** —— 填 Mook 地址，点「测试连接」当场验证
+- **API 密钥** —— 密钥存进 dsh 凭据库（`MOOK_API_KEY`），**页面不回显**，可清除
+- **MCP 配置** —— 按你填的地址和密钥**生成**第 3 步那段 YAML，点「复制」自己粘进 `cordis.patch.yml`
+
+> 密钥明文：生成的片段里含明文密钥。`dsh-mcp-client` 会擦洗父进程环境，
+> 而 Loader 的 `!!js` 是同步求值、`credentials.resolve()` 是异步的，
+> 所以没法从凭据库动态注入——这段片段里必然是明文。
+> **别把它提交到公开仓库。**
 
 ## 装完是什么样
 
@@ -125,6 +154,11 @@ dsh-mook-skill/
 ├── README.md                       # 本文件
 ├── install.sh                      # 一键安装技能到 DSH 技能根
 ├── manifest.json                   # 插件元数据
+├── package.json                    # DSH 插件包定义（宿主半场 + Web 客户端）
+├── cordis.patch.yml                # 装机时把插件挂进 profile
+├── lib/
+│   ├── index.js                    # 宿主半场：设置页的后端路由（/mook/api/*）
+│   └── client.js                   # 客户端半场：设置 → Mook 面板
 ├── LICENSE                         # MIT
 ├── mcp/
 │   ├── mook-mcp.js                 # MCP 服务器（stdio，14 个工具）
@@ -145,7 +179,8 @@ dsh-mook-skill/
 | --- | --- |
 | 技能目录里没有 `mook` | 检查 `SKILL.md` 是否在 `<技能根>/mook/SKILL.md`（不是嵌套更深） |
 | Agent 不会用 | 说「查一下 mook 里有哪些服务器」触发技能加载 |
-| Agent 看不到 mook 工具 | 重启 DSH 会话；确认 `command` 是绝对路径 |
+| Agent 看不到 mook 工具 | 重启 `dsh web`；确认 `transport: stdio` 在、`serverName: mook` 没写错、`command` 是绝对路径 |
+| MCP 条目加了但启动失败 | 最常见是漏了 `transport` 或用了 ACP 形状的 `{name, command}`——见第 3 步 |
 | `Cannot find module '@modelcontextprotocol/sdk'` | 在 `mcp/` 里跑 `npm install` |
 | 401 `API 密钥无效` | 密钥抄错，或用了别的 Mook 实例的密钥 |
 | 403 `密钥缺少权限：X` | 带着 X 重建密钥 |
