@@ -1,7 +1,7 @@
 {
   "name": "@yoursc/dsh-mook-skill",
-  "version": "0.1.0",
-  "description": "Mook 插件（DeepSeek Harness）：把 Mook 托管的服务器与常用命令交给 Agent 管理，含 Web 设置页与 MCP server。",
+  "version": "1.0.0",
+  "description": "Mook 插件（DeepSeek Harness）：把 Mook 托管的服务器与常用命令交给 Agent 管理，含 14 个宿主工具、内嵌技能与 Web 设置页。",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
@@ -13,13 +13,16 @@
   "files": [
     "locale",
     "lib",
-    "mcp",
     "skills",
+    "test",
     "cordis.patch.yml",
-    "install.sh",
     "README.md",
     "LICENSE"
   ],
+  "scripts": {
+    "test": "node test/harness.mjs",
+    "check": "node --check lib/index.js && node --check lib/tools.js && node --check lib/client.js"
+  },
   "dsh": {
     "engines": {
       "dsh": ">=0.1.5-rc.1 || >=0.1.6-0 || >=0.1.7-0"
@@ -34,7 +37,7 @@
   "dshhub": {
     "schemaVersion": 1,
     "displayName": "Mook",
-    "summary": "把 Mook 接入 DeepSeek Harness：Web 设置页填地址与访问密钥（密钥存宿主凭据库，不回显），一键生成 MCP 配置片段，Agent 可管理 Mook 上托管的服务器与常用命令。",
+    "summary": "把 Mook 接入 DeepSeek Harness：装一个插件就同时得到 14 个 mook_* 工具、内嵌技能与设置页。地址与密钥在设置页填（密钥存宿主凭据库，不回显），工具可逐个开关。",
     "categories": [
       "运维",
       "Web UI"
@@ -55,11 +58,12 @@
   },
   "keywords": [
     "dsh",
+    "dsh-plugin",
     "deepseek-harness",
-    "mcp",
     "mook",
     "ssh",
-    "vps"
+    "vps",
+    "web"
   ],
   "license": "MIT",
   "repository": {

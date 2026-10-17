@@ -140,7 +140,7 @@ curl -s -H "Authorization: Bearer $MOOK_API_KEY" \
 # 3. password / private_key 留空字符串 → 保持原凭据不变
 ```
 
-MCP 的 `update_server` 工具已经内建了这个「先 GET 再合并」的逻辑，直接用即可。
+`mook_update_server` 已经内建了这个「先 GET 再合并」的逻辑，直接用即可。
 
 ### ⚠️ 更新不可达的服务器会卡约 10 秒
 
@@ -160,31 +160,41 @@ MCP 的 `update_server` 工具已经内建了这个「先 GET 再合并」的逻
 
 ---
 
-## 六、MCP 客户端类
+## 六、插件与工具类
 
 | 现象 | 处理 |
 | --- | --- |
-| 工具列表里没有 mook 的工具 | 重启客户端；确认 `command` 是绝对路径 |
-| `Cannot find module '@modelcontextprotocol/sdk'` | 在 `mcp/` 目录跑 `npm install` |
-| 启动即退出、stderr 报 `请设置 MOOK_URL` | `env` 没传进去，检查配置的 `env` 块 |
-| `mcpServers contains duplicate normalized name` | 配了两个同名的 server，改名 |
-| server 名字被加了随机后缀 | 名字含非法字符，只能用字母数字 `_` `-` |
-| 工具报 `fetch failed` | `MOOK_URL` 不可达 |
+| 工具列表里没有 `mook_*` | 重启 `dsh web`；确认插件在 profile 的 `dsh.profile.bundles` 里 |
+| 只有 `list_servers` / `get_server` / `list_commands` | 正常：写入、执行、危险三组默认关闭，去设置页打开 |
+| 设置页里没有 Mook | 插件没装上或没重启；看宿主日志有没有 `[dsh-mook]` 开头的行 |
+| 工具报「还没有配置 API 密钥」 | 去 **设置 → Mook → API 密钥** 保存密钥 |
+| 工具报 `无法连接 Mook` | 设置页里的地址不可达；点「测试连接」复验 |
+| 同时出现两套 Mook 工具 | profile `cordis.patch.yml` 里还留着 0.x 的 `dsh-mcp-client` 实例，删掉并重启 |
+| 技能没生效 | `$DSH_HOME/skills/mook/` 里有 0.x 用 `install.sh` 拷的旧副本，它优先于插件内置技能，删掉 |
 
-### 手工验证 MCP 能起来
+### 手工验证工具已注册
 
-```bash
-cd /绝对路径/dsh-mook-skill/mcp
-printf '%s\n' \
- '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"p","version":"1"}}}' \
- '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
- '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
- | MOOK_URL=http://127.0.0.1:5866 MOOK_API_KEY=mk_test node mook-mcp.js
+看宿主日志：
+
+```
+[dsh-mook] 已注册工具：mook_list_servers, mook_get_server, mook_list_commands
+[dsh-mook] 已注册技能：mook
+[dsh-mook] 设置页已就绪：/mook/api
 ```
 
-期望第一行是 `initialize` 的响应（`"name":"mook"`），之后是 14 个工具的列表。
+只列出三个只读工具是**正常**的（其余分组默认关闭）。
+如果出现 `宿主没有工具服务`，说明这个 DSH 实例没有 `ctx.tools`，
+插件其余部分（设置页、技能）仍然可用——但工具不会注册。
 
-> stderr 上的日志是正常的（这个 server 把 stdout 全留给 MCP 协议）。
+### 自测
+
+在源码目录跑：
+
+```bash
+npm test
+```
+
+17 项检查，用假宿主驱动插件真身，覆盖工具形状、开关注册、技能解析与配置读写。
 
 ---
 

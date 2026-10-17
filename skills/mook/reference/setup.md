@@ -1,49 +1,14 @@
 # 安装与配置
 
-本插件为 **DeepSeek Harness（DSH）** 验证与支持，提供两种接入方式，**建议两个都装**：
+本插件为 **DeepSeek Harness（DSH）** 验证与支持。**装一个插件就够了** —— 它同时提供：
 
-| 方式 | 作用 | 装法 |
+| 部分 | 作用 | 装法 |
 | --- | --- | --- |
-| **技能（Skill）** | 教 Agent 怎么用：权限、接口、陷阱、安全红线 | 复制 `skills/mook/` 到 DSH 技能根 |
-| **MCP 服务器** | 给 Agent 现成的 14 个工具，不用手拼 curl | 装宿主半场后由「设置 → Mook」生成配置片段 |
+| **14 个工具** | Agent 直接调用 Mook 接口，不用手拼 curl | 自动（`ctx.tools.register`） |
+| **技能（Skill）** | 教 Agent 怎么用：权限、陷阱、安全红线 | 自动（`ctx.skills.register`，读包内 `SKILL.md`） |
+| **设置页** | 填地址与密钥、逐个开关工具 | 自动（`/mook/api/*`） |
 
-技能是主路径（DSH 原生支持 `SKILL.md`）；MCP 是增强，让工具调用更结构化。
-
-**先决条件**：Node.js ≥ 18（`node --version` 检查；仅 MCP 方式需要）。
-
----
-
-## 第 0 步：装技能（DeepSeek 主路径）
-
-```bash
-# DSH_HOME 默认指 dsh-data 目录，技能根是它下面的 skills/
-cp -r skills/mook "${DSH_HOME:-$HOME/.dsh}/skills/mook"
-```
-
-本机（飞牛 199）的实际命令：
-
-```bash
-cp -r skills/mook /vol1/@appdata/deepseek.harness/dsh-data/skills/mook
-```
-
-**为什么要放这个位置**：DSH 的技能发现器扫描若干「技能根」，其中用户根是
-`<DSH_HOME>/skills`。技能必须是**目录束**形态 `<名字>/SKILL.md`，且 `SKILL.md`
-**只在技能根的直接子目录下才会被发现** —— 放到更深一层就静默失效。
-
-装完**不用重启**：DSH 会 watch 技能目录，`mook` 会立刻出现在技能清单里。
-
-验证：
-
-```bash
-ls "${DSH_HOME:-$HOME/.dsh}/skills/mook/SKILL.md" && echo "OK"
-```
-
-然后配置两个环境变量（Agent 靠它们调接口）：
-
-```bash
-export MOOK_URL=http://192.168.31.199:5866     # 不要尾斜杠
-export MOOK_API_KEY=mk_你的密钥
-```
+**先决条件**：Mook ≥ v0.4.0；DSH ≥ 0.1.5；Node.js ≥ 20（DSH 自带）。
 
 ---
 
@@ -67,11 +32,36 @@ export MOOK_API_KEY=mk_你的密钥
 
 ---
 
-## 第 2 步：拿到 Mook 地址
+## 第 2 步：装插件
 
-就是你在浏览器里打开 Mook 的那个地址，**不要带尾斜杠**：
+```bash
+dsh plugin --profile web add @yoursc/dsh-mook-skill
+```
 
-| 部署方式 | `MOOK_URL` 示例 |
+从源码目录装也行：
+
+```bash
+dsh plugin --profile web add /绝对路径/dsh-mook-skill
+```
+
+然后**重启 `dsh web`**。插件是在 profile 组合树装载时注册的，新增插件必须重启一次；
+之后改设置页里的任何内容只需刷新页面。
+
+> **不需要**手动编辑 profile 的 `cordis.patch.yml`。`dsh plugin add` 已把包加进
+> `dsh.profile.bundles`，包自带的 `cordis.patch.yml` 会把插件挂进组合树。
+> 0.x 版本要求手工粘 MCP 配置，1.0.0 起这件事被彻底去掉了。
+
+---
+
+## 第 3 步：在设置页填地址与密钥
+
+打开 **设置 → Mook**，四张卡各自保存：
+
+### 连接
+
+填 Mook 地址，**不要带尾斜杠**：
+
+| 部署方式 | 地址示例 |
 | --- | --- |
 | Docker 直连 | `http://192.168.31.199:5866` |
 | 走网关 / 反向代理 | `https://mook.example.com` |
@@ -83,124 +73,84 @@ export MOOK_API_KEY=mk_你的密钥
 >
 > 例外：**Mook v0.4.5 及以后**在直连端口上同时接受带前缀与不带前缀两种写法。
 > 带前缀的写法在**所有版本**上都有效，所以建议一律带上。
->
-> 套件版的端口在**安装向导里选**（默认 5866），也可在「应用设置 → 配置」中修改。
 
-自测一下：
+填好点 **「测试连接」** —— 它会**直接用你正在编辑的地址**，不必先保存。
 
-```bash
-curl -s "$MOOK_URL/api/setup/status"
-# 期望：{"setup_required":false}
-```
+### API 密钥
 
-返回 `404 page not found` = 地址少了前缀（套件版）或路径写错；
-返回 HTML 而不是 JSON = 地址指向了网页端而非 API 根路径。
+粘贴 `mk_` 开头的密钥，点「保存密钥」。密钥写进 dsh 凭据库（`MOOK_API_KEY`），
+**页面永不回显**，只显示状态徽标（已配置 / 未配置 / 来自环境变量）。
 
----
+若密钥来自只读来源（例如启动 dsh web 时设的环境变量 `MOOK_API_KEY`），输入框会置灰。
+想改成在页面里管理，就去掉那个环境变量并重启。
 
-## 第 3 步：配置 MCP 服务器（可选，推荐）
+### 工具开关
 
-Mook 插件提供标准 stdio MCP server。在 DSH 里它是**一个 Cordis 插件实例**，
-写在 profile 的 `cordis.patch.yml` 里：
+14 个工具分四组，见下一节。**保存即时生效，不需要重启 dsh。**
 
-```yaml
-- id: mook
-  name: "@deepseek-ai/dsh-mcp-client"
-  config:
-    transport: stdio
-    serverName: mook
-    command: /usr/bin/node
-    args:
-      - /绝对路径/dsh-mook-skill/mcp/mook-mcp.js
-    env:
-      MOOK_URL: "http://192.168.31.199:5866"
-      MOOK_API_KEY: "mk_你的密钥"
-```
+### 清除全部数据
 
-文件位置：`${DSH_HOME:-~/.dsh}/profiles/<profile>/cordis.patch.yml`
-（Web profile 就是 `profiles/web/cordis.patch.yml`）。改完**重启 `dsh web`** 生效。
-
-四个要点：
-
-- **`transport: stdio` 是必填的**。DSH 的 MCP 客户端靠它分发传输层；
-  写成 ACP 风格的 `{name, command}` 或漏掉 `transport` 都会启动失败。
-- `serverName` 只能含字母、数字、`_`、`-`（最长 32 字符），工具会以
-  `mcp__mook__<工具名>` 注册给模型。**是 `serverName` 不是 `name`** ——
-  同一条目外层那个 `id: mook` 才是实例标识。
-- `command` 必须是**绝对路径**。用 `which node` 查出来填进去，
-  DSH 擦洗过父进程环境，拿不到 shell 的 PATH。
-- `env` 里两个变量**必须显式写全**。`dsh-mcp-client` 会擦洗父进程环境
-  （credential 形状的变量会被剔除），所以 `MOOK_API_KEY` 不能靠外部环境变量兜底。
-
-> 如果你已经装好本插件的**宿主半场**（见第 0 步，`dsh plugin add` 方式），
-> 更省事的做法是打开 **设置 → Mook**，填好地址与密钥后点「生成配置片段」，
-> 插件会按你填的地址和密钥生成上面这段 YAML，点「复制」再自己粘进
-> `cordis.patch.yml` —— 它不会替你写文件，落笔仍是你自己。
-
-### 依赖装在哪？
-
-`mook-mcp.js` 需要 `@modelcontextprotocol/sdk` 和 `zod`。在插件目录装一次：
-
-```bash
-cd /绝对路径/dsh-mook-skill/mcp
-npm install --registry=https://registry.npmmirror.com
-```
-
-装完 `node_modules/` 就在同目录，`mook-mcp.js` 启动时能解析到。
+卸载前点一下，见文末。
 
 ---
 
 ## 第 4 步：验证
 
-### 验证技能被发现（DeepSeek）
+### 验证工具已注册
 
-在 DSH 里说一句与 Mook 相关的话，例如「查一下 mook 里有哪些服务器」，
-Agent 应当自动加载 `mook` 技能。也可以直接检查文件：
+在 DSH 里说「列出 Mook 里有哪些服务器」。Agent 应该调用 `mook_list_servers`。
 
-```bash
-ls "${DSH_HOME:-$HOME/.dsh}/skills/mook/SKILL.md"
-```
+看不到 `mook_*` 工具时，按顺序排查：
 
-技能没出现时，按顺序排查：
+1. 重启 `dsh web` 了没有
+2. 插件是否在 profile 的 `dsh.profile.bundles` 里
+3. **是否只看到三个只读工具** —— 那是正常的，写入/执行/危险三组默认关闭，
+   去 **设置 → Mook → 工具开关** 打开
 
-1. 路径是不是 `<技能根>/mook/SKILL.md`（**不能**更深，如 `skills/mook/mook/SKILL.md`）
-2. frontmatter 是否有 `name` 和 `description` 两个必需字段
-3. `name` 是不是 kebab-case（只能小写字母、数字、连字符）
-4. `SKILL.md` 里有没有 Tab 字符（YAML 不允许缩进用 Tab）
+### 验证技能已加载
 
-### 验证 MCP 服务器能起来
+说一句与 Mook 相关的话（如「查一下 mook 里有哪些服务器」），Agent 应自动加载 `mook` 技能。
 
-```bash
-cd /绝对路径/dsh-mook-skill/mcp
-npm install
-printf '%s\n' \
- '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"probe","version":"1"}}}' \
- '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
- '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
- | MOOK_URL=http://192.168.31.199:5866 MOOK_API_KEY=mk_你的密钥 node mook-mcp.js
-```
-
-期望看到 `"name":"mook"` 和 14 个工具。**如果密钥缺失会直接退出并报错**，这是有意的。
+**技能没生效时先查一件事**：`$DSH_HOME/skills/mook/` 里是否有 0.x 时代用 `install.sh`
+拷贝的**旧副本**。技能发现器里项目级/文件系统技能优先于插件注册的 runtime 技能，
+旧副本会盖住内置版本 —— 删掉它。
 
 ### 验证权限
 
-让 Agent 说「列出我的服务器」。如果报 403，说明密钥少了权限，回第 1 步重建。
+让 Agent 执行一次实际操作。如果报 403，说明密钥少了权限，回第 1 步重建。
+
+---
+
+## 工具分组与默认值
+
+| 分组 | 默认 | 工具 | 说明 |
+| --- | --- | --- | --- |
+| 只读 | **开** | `mook_list_servers`、`mook_get_server`、`mook_list_commands` | 看服务器与命令库 |
+| 写入 | **关** | `mook_add_server`、`mook_update_server`、`mook_save_command`、`mook_update_command`、`mook_mark_command_used` | 改服务器与命令库 |
+| 执行 | **关** | `mook_exec_command`、`mook_list_files`、`mook_read_file`、`mook_write_file` | ⚠️ 远程 shell 与文件读写 |
+| 危险 | **关** | `mook_remove_server`、`mook_delete_command` | 删除，且必须传 `confirm=true` |
+
+写入与执行默认关闭，是因为它们会**真实改动你的服务器**。建议先只开只读用一段时间，
+确认 Agent 的表现符合预期，再逐组打开。
 
 ---
 
 ## 常见问题
 
 **Agent 说找不到 mook 工具**
-- MCP 客户端没重启（改完配置必须重启）
-- `command` 不是绝对路径
-- `node` 不在客户端进程的 PATH 里
+- 没重启 `dsh web`
+- 对应分组被关掉了（设置页看一下）
 
-**`Cannot find module '@modelcontextprotocol/sdk'`**
-- 忘了在 `dsh-mook-skill/mcp/` 下 `npm install`
+**只有三个工具**
+- 正常，写入/执行/危险默认关闭
+
+**同时出现两套 Mook 工具**
+- profile `cordis.patch.yml` 里还留着 0.x 的 `@deepseek-ai/dsh-mcp-client` 实例，
+  删掉那一段并重启
 
 **连不上**
-- 确认 `MOOK_URL` 不带尾斜杠、Mook 在运行、网络可达
-- 用 `curl $MOOK_URL/api/setup/status` 自测
+- 确认地址不带尾斜杠、Mook 在运行、网络可达
+- 用 `curl "$MOOK_URL/api/setup/status"` 自测，期望 `{"setup_required":false}`
 
 **401 `API 密钥无效`**
 - 密钥抄错了，或用了另一个 Mook 实例的密钥
@@ -212,16 +162,20 @@ printf '%s\n' \
 
 ## 卸载插件前
 
-DSH 卸载插件时**只删程序文件**，插件自己写的数据不会跟着走。卸载前请在 **设置 → Mook → 「清除全部数据」** 点一下（两段式确认，可重复点）。
+DSH 卸载插件时**只删程序文件**，插件自己写的数据不会跟着走。卸载前请在
+**设置 → Mook → 「清除全部数据」** 点一下（两段式确认，可重复点）。
 
 清除范围：
 
 | 位置 | 内容 |
 | --- | --- |
-| `$DSH_HOME/storages/mook/config.json` | Mook 地址，约 46 字节 |
+| `$DSH_HOME/storages/mook/config.json` | Mook 地址与工具开关 |
 | dsh 凭据库的 `MOOK_API_KEY` | API 密钥，与其它凭据加密共存于同一个 `.credentials.yaml` |
 
-**不会动**凭据库中的其它条目。技能目录 `$DSH_HOME/skills/mook/` 由 `install.sh` 复制，卸载插件不会删它，需要自己 `rm -rf`。
+**不会动**凭据库中的其它条目。
 
-插件**无法自动清理**：cordis 在插件 dispose 时广播 `internal/plugin` 事件，而「禁用插件」与「卸载插件」走的是同一条路径，插件分不出来；自动删会在用户只是临时禁用一下时误删密钥。
+**技能不用删**：1.0.0 起技能随插件注册，不落地到 `$DSH_HOME/skills`，卸载即消失。
+（0.x 用 `install.sh` 拷过的话，那份旧副本要自己 `rm -rf`。）
 
+插件**无法自动清理**：cordis 在插件 dispose 时广播 `internal/plugin` 事件，而「禁用插件」
+与「卸载插件」走的是同一条路径，插件分不出来；自动删会在用户只是临时禁用一下时误删密钥。

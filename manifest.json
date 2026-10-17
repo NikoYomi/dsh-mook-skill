@@ -1,56 +1,42 @@
 {
   "name": "dsh-mook-skill",
-  "version": "0.1.0",
-  "description": "Mook 插件（DeepSeek Harness 技能 + MCP 服务器）：让 Agent 通过访问密钥管理 Mook 上托管的服务器与常用命令",
+  "version": "1.0.0",
+  "description": "Mook 插件（DeepSeek Harness）：让 Agent 通过访问密钥管理 Mook 上托管的服务器与常用命令，含 14 个宿主工具、内嵌技能与设置页",
   "target": {
     "agent": "deepseek-harness"
   },
   "requires": {
     "mook": ">=0.4.0",
-    "node": ">=18"
+    "node": ">=20"
   },
   "install": {
-    "skill": {
-      "from": "skills/mook",
-      "to": "${DSH_HOME:-$HOME/.dsh}/skills/mook",
-      "note": "目录束形态：必须是 <技能根>/mook/SKILL.md，DSH 不会发现嵌套更深的 SKILL.md"
-    },
-    "mcp": {
-      "from": "mcp/mook-mcp.js",
-      "command": "node",
-      "note": "在 profile 的 cordis.patch.yml 中声明为 Cordis 插件实例：config 需含 transport: stdio、serverName: mook、绝对路径的 command/args，以及 env.MOOK_URL / env.MOOK_API_KEY"
-    },
     "plugin": {
-      "command": "dsh plugin --profile web add <本目录绝对路径>",
-      "note": "装宿主半场后，地址与密钥可在「设置 → Mook」里填（密钥存 dsh 凭据库，不回显），并可生成 MCP 配置片段",
+      "command": "dsh plugin --profile web add @yoursc/dsh-mook-skill",
+      "note": "一条命令即可。宿主半场自带 14 个 mook_* 工具与 mook 技能，地址与密钥在「设置 → Mook」里填（密钥存 dsh 凭据库，不回显）。装完重启 dsh web。",
       "displayName": {
         "source": "locale/en.json 与 locale/zh.json 的 meta.title",
         "note": "DSH 从 <包>/locale/<lang>.json 读插件显示名，回退到 package.json 的 name；dshhub.displayName 是死字段，不生效。package.json 的 exports 必须放行 \"./locale/*\"，否则文件存在也解析不到。"
       }
+    },
+    "skill": {
+      "from": "skills/mook/SKILL.md",
+      "note": "不再需要手工拷贝：插件用 ctx.skills.register() 把包内技能注册成 runtime 技能（取代 0.x 的 install.sh）。runtime 技能优先级低于项目级同名技能。"
+    },
+    "tools": {
+      "from": "lib/tools.js",
+      "note": "不再需要独立 MCP server：14 个工具用 ctx.tools.register() 注册进宿主进程，按设置页的逐工具开关启用。"
     }
   },
-  "env": [
-    {
-      "key": "MOOK_URL",
-      "required": true,
-      "description": "Mook 实例地址，不要带尾斜杠，例如 http://192.168.31.199:5866"
-    },
-    {
-      "key": "MOOK_API_KEY",
-      "required": true,
-      "description": "访问密钥，mk_ 开头共 51 字符，在 Mook 网页端 设置 → 访问密钥 创建"
-    }
-  ],
   "entries": [
     {
       "path": "SKILL.md",
       "title": "Mook",
-      "description": "技能入口：权限速查、接口清单、五个必须知道的陷阱、安全红线"
+      "description": "技能入口：权限速查、工具清单、五个必须知道的陷阱、安全红线"
     },
     {
       "path": "reference/setup.md",
       "title": "安装与配置",
-      "description": "从零安装：建密钥、装依赖、各客户端 MCP 配置、技能安装、验证"
+      "description": "从零安装：建密钥、装插件、设置页配置、验证"
     },
     {
       "path": "reference/api.md",
@@ -60,7 +46,7 @@
     {
       "path": "reference/troubleshooting.md",
       "title": "排错手册",
-      "description": "401/403/502、超时、全量替换陷阱、MCP 客户端排错、安全提醒"
+      "description": "401/403/502、超时、全量替换陷阱、插件排错、安全提醒"
     }
   ],
   "scopes": [
@@ -91,20 +77,20 @@
     }
   ],
   "tools": [
-    "list_servers",
-    "get_server",
-    "add_server",
-    "update_server",
-    "remove_server",
-    "exec_command",
-    "list_files",
-    "read_file",
-    "write_file",
-    "list_commands",
-    "save_command",
-    "update_command",
-    "delete_command",
-    "mark_command_used"
+    "mook_list_servers",
+    "mook_get_server",
+    "mook_add_server",
+    "mook_update_server",
+    "mook_remove_server",
+    "mook_exec_command",
+    "mook_list_files",
+    "mook_read_file",
+    "mook_write_file",
+    "mook_list_commands",
+    "mook_save_command",
+    "mook_update_command",
+    "mook_delete_command",
+    "mook_mark_command_used"
   ],
   "license": "MIT",
   "homepage": "https://github.com/NikoYomi/dsh-mook-skill",
@@ -115,9 +101,9 @@
   "uninstall": {
     "cleanup": "设置 → Mook → 「清除全部数据」（幂等）",
     "data": [
-      "${DSH_HOME}/storages/mook/config.json（Mook 地址，约 46 字节）",
+      "${DSH_HOME}/storages/mook/config.json（Mook 地址与工具开关，约几十字节）",
       "dsh 凭据库的 MOOK_API_KEY（与其它凭据加密共存于 .credentials.yaml）"
     ],
-    "note": "DSH 卸载插件只删程序文件，不清插件数据；插件也无法自动清（禁用与卸载走同一条 dispose 路径，无法区分）。技能目录 ${DSH_HOME}/skills/mook/ 需手动 rm -rf。"
+    "note": "DSH 卸载插件只删程序文件，不清插件数据；插件也无法自动清（禁用与卸载走同一条 dispose 路径，无法区分）。1.0.0 起技能随插件注册，不落地到技能根，无需手动清理。"
   }
 }
